@@ -1,0 +1,12 @@
+trader
+merchant
+salesperson
+salesman
+peasant
+farmer
+hero
+blacksmith
+artist
+poet
+programmer
+musician

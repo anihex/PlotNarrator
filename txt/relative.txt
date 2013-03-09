@@ -10,3 +10,11 @@ sister
 daughter
 friend
 mate
+uncle
+aunt
+son-in-law
+dauther-in-law
+goldfish
+lover
+lawyer
+helper
