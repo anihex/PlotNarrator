@@ -9,10 +9,15 @@ uses
   ExtCtrls, Menus, ComCtrls, Buttons;
 
 type
-  TMySTRList = class( TStringList )
+  TMyStrList = class( TStringList )
   public
-    Modified : Boolean;
-    FileName : string;
+    Modified   : Boolean;
+    FileName   : string;
+    FileLoaded : Boolean;
+
+    function LoadFile( aFileName : string ) : Boolean;
+    function SaveFile() : Boolean;
+    function RandomEntry() : string;
   end;
 
   { TMainForm }
@@ -21,6 +26,8 @@ type
     Label1: TLabel;
     Label2: TLabel;
     Label4: TLabel;
+    KeepStoriesButton: TSpeedButton;
+    SaveAllStoriesButton: TButton;
     VisitHomepageLabel: TLabel;
     NewStoryButton: TButton;
     Panel2: TPanel;
@@ -44,7 +51,9 @@ type
     Splitter1: TSplitter;
     TabSheet1: TTabSheet;
     TabSheet12: TTabSheet;
+    procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure NewStoryButtonClick(Sender: TObject);
+    procedure SaveAllStoriesButtonClick(Sender: TObject);
     procedure SaveStoryButtonClick(Sender: TObject);
     procedure CopyToClipboardButtonClick(Sender: TObject);
     procedure SaveChangesButtonClick(Sender: TObject);
@@ -57,48 +66,96 @@ type
     procedure ShowWordsButtonClick(Sender: TObject);
   private
     { private declarations }
-    rAdjectives      : TMySTRList;
-    rAmbush          : TMySTRList;
-    rCheat           : TMySTRList;
-    rDestroy         : TMySTRList;
-    rFinally         : TMySTRList;
-    rFlee            : TMySTRList;
-    rHeros           : TMySTRList;
-    rHideouts        : TMySTRList;
-    rImprison        : TMySTRList;
-    rIntros          : TMySTRList;
-    rKidnap          : TMySTRList;
-    rKill            : TMySTRList;
-    rMindControl     : TMySTRList;
-    rMindControlEnd  : TMySTRList;
-    rObjects         : TMySTRList;
-    rOneDay          : TMySTRList;
-    rRelatives       : TMySTRList;
-    rRescue          : TMySTRList;
-    rVillains        : TMySTRList;
-    rWeapons         : TMySTRList;
+    rAdjectives      : TMyStrList;
+    rAmbush          : TMyStrList;
+    rCheat           : TMyStrList;
+    rDestroy         : TMyStrList;
+    rFinally         : TMyStrList;
+    rFlee            : TMyStrList;
+    rHeros           : TMyStrList;
+    rHideouts        : TMyStrList;
+    rImprison        : TMyStrList;
+    rIntros          : TMyStrList;
+    rKidnap          : TMyStrList;
+    rKill            : TMyStrList;
+    rMindControl     : TMyStrList;
+    rMindControlEnd  : TMyStrList;
+    rObjects         : TMyStrList;
+    rOneDay          : TMyStrList;
+    rRelatives       : TMyStrList;
+    rRescue          : TMyStrList;
+    rVillains        : TMyStrList;
+    rWeapons         : TMyStrList;
 
-    rCurrentWordList : TMySTRList;
+    rCurrentWordList : TMyStrList;
     rInternalListChange : Boolean;
+
+    rCurrentStory    : TStringList;
 
     rApplicationPath: string;
 
     rTitle          : string;
 
     function rGetArticle( aWord : string ) : string;
-    function rLoadTextFile( var aList : TMySTRList; aFileName : string ) : Boolean;
   public
     { public declarations }
   end;
 
 var
   MainForm: TMainForm;
-  story : TStringList;
-  title : string;
 
 implementation
 
 {$R *.lfm}
+
+{ TMyStrList }
+
+// Name       : LoadFile
+// Parameters : - aFileName ( string ) = The FileName of the textfile (without path)
+// Discription: Loads a textfile and sets required propertys if successull
+function TMyStrList.LoadFile( aFileName : string ) : Boolean;
+begin
+  Result := False;
+  if aFileName = '' then Exit;
+
+  // Try to load the file
+  try
+    LoadFromFile( aFileName );
+  except
+    Exit;
+  end;
+
+  // This is only reached if the file was successfully loaded
+  FileLoaded := True;
+  Modified   := False;
+  Result     := True;
+  FileName   := aFileName;
+end;
+
+function TMyStrList.SaveFile() : Boolean;
+begin
+  Result := False;
+  if FileName = '' then Exit;
+
+  // Try to save the file
+  try
+    SaveToFile( FileName );
+  except
+    Exit;
+  end;
+
+  // This is only reached if the file was successfully saved
+  Modified := False;
+  Result   := True;
+end;
+
+function TMyStrList.RandomEntry() : string;
+begin
+  Result := '';
+  if Count = 0 then Exit;
+  Result := Strings[ Random( Count ) ];
+end;
+
 
 { TMainForm }
 
@@ -138,7 +195,7 @@ procedure TMainForm.NewStoryButtonClick(Sender: TObject);
 var
   lPlot          : TStringList;
   lPlotEnds      : TStringList;
-  lPlotLine      : TStringList;
+  lPlotLine      : TMyStrList;
   lStory         : TStringList;
 
   lPlotMode      : Integer;
@@ -178,7 +235,7 @@ begin
   // Prepare all local lists
   lPlot     := TStringList.Create;
   lPlotEnds := TStringList.Create;
-  lPlotLine := TStringList.Create;
+  lPlotLine := TMyStrList.Create;
   lStory    := TStringList.Create;
 
   // Add all Plot Endings
@@ -194,37 +251,37 @@ begin
 
   // Configure the story
     // Configure time events
-  lIntro  := rIntros.Strings[ Random( rIntros.Count ) ];
-  lOneDay := rOneDay.Strings[ Random( rOneday.Count ) ];
-  lFinal  := rFinally.Strings[ Random( rFinally.Count ) ];
+  lIntro  := rIntros.RandomEntry();
+  lOneDay := rOneDay.RandomEntry();
+  lFinal  := rFinally.RandomEntry();
 
     // Configure the hero
-  lHeroName      := rHeros.Strings[ Random( rHeros.Count ) ];
-  lHeroAdjective := rAdjectives.Strings[ Random( rAdjectives.Count ) ];
+  lHeroName      := rHeros.RandomEntry();
+  lHeroAdjective := rAdjectives.RandomEntry();
   lHeroGender    := lGenders[ Random( 2 ) ];
   lHeroGender2   := 'his';
   if lHeroGender = 'She' then lHeroGender2 := 'her';
 
     // Configure the villain
-  lVillain := rVillains.Strings[ Random( rVillains.Count ) ];
-  lHideout := rHideouts.Strings[ Random( rHideouts.Count ) ];
+  lVillain := rVillains.RandomEntry();
+  lHideout := rHideouts.RandomEntry();
 
     // Configure the actions
-  lAmbush   := rAmbush.Strings[ Random( rAmbush.Count ) ];
-  lCheat    := rCheat.Strings[ Random( rCheat.Count ) ];
-  lDestroy  := rDestroy.Strings[ Random( rDestroy.Count ) ];
-  lWitchEnd := rMindControlEnd.Strings[ Random( rMindControlEnd.Count ) ];
-  lFlee     := rFlee.Strings[ Random( rFlee.Count ) ];
-  lImprison := rImprison.Strings[ Random( rImprison.Count ) ];
-  lKidnap   := rKidnap.Strings[ Random( rKidnap.Count ) ];
-  lKill     := rKill.Strings[ Random( rKill.Count ) ];
-  lRescue   := rRescue.Strings[ Random( rRescue.Count ) ];
-  lWitch    := rMindControl.Strings[ Random( rMindControl.Count ) ];
+  lAmbush   := rAmbush.RandomEntry();
+  lCheat    := rCheat.RandomEntry();
+  lDestroy  := rDestroy.RandomEntry();
+  lWitchEnd := rMindControlEnd.RandomEntry();
+  lFlee     := rFlee.RandomEntry();
+  lImprison := rImprison.RandomEntry();
+  lKidnap   := rKidnap.RandomEntry();
+  lKill     := rKill.RandomEntry();
+  lRescue   := rRescue.RandomEntry();
+  lWitch    := rMindControl.RandomEntry();
 
     // Configure the victims
-  lObject := rObjects.Strings[ Random( rObjects.Count ) ];
-  lVictim := rRelatives.Strings[ Random( rRelatives.Count ) ];
-  lWeapon := rWeapons.Strings[ Random( rWeapons.Count ) ];
+  lObject := rObjects.RandomEntry();
+  lVictim := rRelatives.RandomEntry();
+  lWeapon := rWeapons.RandomEntry();
 
   try
 
@@ -280,7 +337,7 @@ begin
     // Add an ending
     lPlot.Add( lPlotEnds.Strings[ Random( lPlotEnds.Count ) ] );
 
-    StoryMemo.Lines.Text := '';
+    if not KeepStoriesButton.Down then StoryMemo.Lines.Text := '';
 
     // Run this loop as long as there is a plotline to manage
     while lPlot.Count > 0 do
@@ -291,7 +348,7 @@ begin
 
       if lPlot.Strings[ 0 ] = 'ambush_hideout' then
       begin
-        lPlotLine.Add( Format( 'The %s %s the % of the %s.',  [ lHeroName, lAmbush, lHideout, lVillain ] ) );
+        lPlotLine.Add( Format( 'The %s %s the %s of the %s.',  [ lHeroName, lAmbush, lHideout, lVillain ] ) );
         lPlotLine.Add( Format( '%s %s the %s of the %s.', [ lHeroGender, lAmbush, lHideout, lVillain ] ) );
         lAddLine := true;
       end;
@@ -387,13 +444,41 @@ begin
       end;
 
       // Add a random line
-      if lAddLine then lStory.Add( lPlotLine.Strings[ Random( lPlotLine.Count ) ] ); // Choose one of the avaible story lines
+      if lAddLine then lStory.Add( lPlotLine.RandomEntry() ); // Choose one of the avaible story lines
       lPlot.Delete( 0 ); // Remove the current Plotline from the list
     end;
 
-    // Show the story in the StoryMemo
-    StoryMemo.Lines.AddStrings( lStory );
+    // Creating a title
+    case Random( 4 ) of
+      0: rTitle := Format( 'The %s', [ lVillain ] );
+      1: rTitle := Format( 'The %s and the %s', [ lHeroName, lVillain ] );
+      2: rTitle := Format( 'The %s %s', [ lHeroAdjective, lHeroName ] );
+      3:
+      begin
+        case lPlotMode of
+          // 1 = Destroy
+          // 2 = Kidnap (Hero)
+          // 3 = Kidnap (Relative)
+          // 4 = Mind Control
+          // 5 = Revenge
+          1: rTitle := Format( 'The %s %s', [ lDestroy, lObject ] );
+          2: rTitle := Format( 'The %s %s', [ lKidnap, lHeroName ] );
+          3: rTitle := Format( 'The %s %s', [ lKidnap, lVictim ] );
+          4: rTitle := Format( 'The %s %s', [ lWitch, lHeroName ] );
+          5: rTitle := Format( 'The %s %s', [ lKill, lVictim] );
+        end;
+      end;
+    end;
 
+    MainForm.Caption := 'Plot Narrator - ' + rTitle;
+
+    // Show the story in the StoryMemo
+    if StoryMemo.Text <> '' then StoryMemo.Text := StoryMemo.Text + #13 + #13;
+    lStory.Insert( 0, rTitle );
+    lStory.Insert( 1, StringOfChar( '=', Length( rTitle ) ) );
+    StoryMemo.Lines.AddStrings( lStory );
+    StoryMemo.SelStart := Length( StoryMemo.Text );
+    rCurrentStory.Text := lStory.Text;
   finally
     // The lists became useless. Delete them!
     lPlot.Free;
@@ -401,30 +486,32 @@ begin
     lPlotLine.Free;
     lStory.Free;
   end;
+end;
 
-  // Creating a title
-  case Random( 4 ) of
-    0: rTitle := Format( 'The %s', [ lVillain ] );
-    1: rTitle := Format( 'The %s and the %s', [ lHeroName, lVillain ] );
-    2: rTitle := Format( 'The %s %s', [ lHeroAdjective, lHeroName ] );
-    3:
-    begin
-      case lPlotMode of
-        // 1 = Destroy
-        // 2 = Kidnap (Hero)
-        // 3 = Kidnap (Relative)
-        // 4 = Mind Control
-        // 5 = Revenge
-        1: rTitle := Format( 'The %s %s', [ lDestroy, lObject ] );
-        2: rTitle := Format( 'The %s %s', [ lKidnap, lHeroName ] );
-        3: rTitle := Format( 'The %s %s', [ lKidnap, lVictim ] );
-        4: rTitle := Format( 'The %s %s', [ lWitch, lHeroName ] );
-        5: rTitle := Format( 'The %s %s', [ lKill, lVictim] );
-      end;
-    end;
+
+// Name       : FormCanClose
+// Discription: Checks if the word lists have been changed and warns if so.
+//              Also checks if the current story has been saved. Warns if it wasn't.
+procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: boolean);
+begin
+  // Currently a dummy-function. Real content follows ...
+  CanClose := True;
+end;
+
+// Name       : SaveAllStoriesButtonClick
+// Discription: Saves all generated stories and suggests a possible filename based
+//              on the title of the last story
+procedure TMainForm.SaveAllStoriesButtonClick(Sender: TObject);
+var
+  lFileName : string;
+begin
+  SaveStoryDiag.FileName := rTitle; // Use the current title as the filename
+  if SaveStoryDiag.Execute then
+  begin
+    lFileName := SaveStoryDiag.FileName;
+    if (SaveStoryDiag.FilterIndex = 1) and ( LowerCase( ExtractFileExt(lFileName) ) <> '.txt' ) then lFileName := lFileName + '.txt'; // Add the TXT if not present (only if mode is .txt)
+    StoryMemo.Lines.SaveToFile( lFileName );
   end;
-
-  MainForm.Caption := 'Plot Narrator - ' + rTitle;
 end;
 
 // Name       : SaveStoryButtonClick
@@ -439,27 +526,8 @@ begin
   begin
     lFileName := SaveStoryDiag.FileName;
     if (SaveStoryDiag.FilterIndex = 1) and ( LowerCase( ExtractFileExt(lFileName) ) <> '.txt' ) then lFileName := lFileName + '.txt'; // Add the TXT if not present (only if mode is .txt)
-    WordListMemo.Lines.SaveToFile( lFileName );
+    rCurrentStory.SaveToFile( lFileName );
   end;
-end;
-
-// Name       : rLoadTextFile
-// Parameters : - aList ( TMySTRList ) = The target list wich contains the file
-//              - aFileName ( string ) = The FileName of the textfile (without path)
-// Discription: Loads a textfile into a TMySTRList and sets it's parameters if
-//              successull
-function TMainForm.rLoadTextFile( var aList : TMySTRList; aFileName : string ) : Boolean;
-begin
-  Result := True;
-
-  try
-    aList.LoadFromFile( rApplicationPath + 'txt/' + aFileName + '.txt' );
-  except
-    Result := False;
-  end;
-
-  // Successfully loaded. Set the filename of this list
-  if Result then aList.FileName := rApplicationPath + 'txt/' + aFileName + '.txt';
 end;
 
 // Name       : CopyToClipboardButtonClick
@@ -544,8 +612,13 @@ end;
 // Name       :
 // Discription:
 procedure TMainForm.FormCreate(Sender: TObject);
+var
+  lFailedFiles : string;
+  lTxtPath     : string;
 begin
   Randomize;
+
+  rCurrentStory     := TStringList.Create;
 
   rAdjectives      := TMySTRList.Create;
   rAmbush          := TMySTRList.Create;
@@ -569,27 +642,39 @@ begin
   rWeapons         := TMySTRList.Create;
 
   rApplicationPath := ExtractFilePath( Application.ExeName );
+  ChDir( rApplicationPath );
 
-  rLoadTextFile( rAdjectives    , 'adjectives' );
-  rLoadTextFile( rAmbush        , 'ambush' );
-  rLoadTextFile( rCheat         , 'cheat' );
-  rLoadTextFile( rDestroy       , 'destroy' );
-  rLoadTextFile( rFinally       , 'finally' );
-  rLoadTextFile( rFlee          , 'flee' );
-  rLoadTextFile( rHeros         , 'heros' );
-  rLoadTextFile( rHideouts      , 'hideouts' );
-  rLoadTextFile( rImprison      , 'imprison' );
-  rLoadTextFile( rIntros        , 'intro' );
-  rLoadTextFile( rKidnap        , 'kidnap' );
-  rLoadTextFile( rKill          , 'kill' );
-  rLoadTextFile( rMindControl   , 'witch' );
-  rLoadTextFile( rMindControlEnd, 'witch_end' );
-  rLoadTextFile( rObjects       , 'destroyobject' );
-  rLoadTextFile( rOneDay        , 'oneday' );
-  rLoadTextFile( rRelatives     , 'relative' );
-  rLoadTextFile( rRescue        , 'rescue' );
-  rLoadTextFile( rVillains      , 'villains' );
-  rLoadTextFile( rWeapons       , 'weapons' );
+  lFailedFiles := '';
+
+  lTxtPath := 'txt/';
+
+  if not rAdjectives.LoadFile( 'txt/adjectives.txt' ) then lFailedFiles := lFailedFiles + '- Adjectives'+#13;
+  if not rAmbush.LoadFile( lTxtPath + 'ambush.txt' ) then lFailedFiles := lFailedFiles + '- Ambush'+#13;
+  if not rCheat.LoadFile( lTxtPath + 'cheat.txt' ) then lFailedFiles := lFailedFiles + '- Cheat'+#13;
+  if not rDestroy.LoadFile( lTxtPath + 'destroy.txt' ) then lFailedFiles := lFailedFiles + '- Destroy'+#13;
+  if not rFinally.LoadFile( lTxtPath + 'finally.txt' ) then lFailedFiles := lFailedFiles + '- Finally'+#13;
+  if not rFlee.LoadFile( lTxtPath + 'flee.txt' ) then lFailedFiles := lFailedFiles + '- Flee'+#13;
+  if not rHeros.LoadFile( lTxtPath + 'heros.txt' ) then lFailedFiles := lFailedFiles + '- Heros'+#13;
+  if not rHideouts.LoadFile( lTxtPath + 'hideouts.txt' ) then lFailedFiles := lFailedFiles + '- Hideouts'+#13;
+  if not rImprison.LoadFile( lTxtPath + 'imprison.txt' ) then lFailedFiles := lFailedFiles + '- Imprison'+#13;
+  if not rIntros.LoadFile( lTxtPath + 'intro.txt' ) then lFailedFiles := lFailedFiles + '- Intro'+#13;
+  if not rKidnap.LoadFile( lTxtPath + 'kidnap.txt' ) then lFailedFiles := lFailedFiles + '- Kidnap'+#13;
+  if not rKill.LoadFile( lTxtPath + 'kill.txt' ) then lFailedFiles := lFailedFiles + '- Kill'+#13;
+  if not rMindControl.LoadFile( lTxtPath + 'witch.txt' ) then lFailedFiles := lFailedFiles + '- Mind Control'+#13;
+  if not rMindControlEnd.LoadFile( lTxtPath + 'witch_end.txt' ) then lFailedFiles := lFailedFiles + '- MindControl (End)'+#13;
+  if not rObjects.LoadFile( lTxtPath + 'destroyobject.txt' ) then lFailedFiles := lFailedFiles + '- Objects'+#13;
+  if not rOneDay.LoadFile( lTxtPath + 'oneday.txt' ) then lFailedFiles := lFailedFiles + '- One Day'+#13;
+  if not rRelatives.LoadFile( lTxtPath + 'relative.txt' ) then lFailedFiles := lFailedFiles + '- Relatives'+#13;
+  if not rRescue.LoadFile( lTxtPath + 'rescue.txt' ) then lFailedFiles := lFailedFiles + '- Rescue'+#13;
+  if not rVillains.LoadFile( lTxtPath + 'villains.txt' ) then lFailedFiles := lFailedFiles + '- Villains'+#13;
+  if not rWeapons.LoadFile( lTxtPath + 'weapons.txt' ) then lFailedFiles := lFailedFiles + '- Weapons'+#13;
+
+  if lFailedFiles <> '' then
+  begin
+    lFailedFiles := 'Error while loading the following files:'+#13+lFailedFiles;
+    lFailedFiles := lFailedFiles + 'Please make sure those files exist and are readyble.';
+    ShowMessage( lFailedFiles );
+  end;
 
   rInternalListChange := True;
   WordListMemo.Lines.Text := rAdjectives.Text;
@@ -601,6 +686,8 @@ end;
 // Discription:
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
+  rCurrentStory.Free;
+
   rAdjectives.Free;
   rAmbush.Free;
   rCheat.Free;
